@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rob OS — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #f4f5f7;
+  --surface:  #ffffff;
+  --surface2: #f8f9fa;
+  --border:   #e4e6ea;
+  --border2:  #d0d3d9;
+  --text:     #111318;
+  --text-mid: #5c6270;
+  --text-dim: #9ba3b2;
+  --accent:   #1a5c3a;
+  --accent-bg:rgba(26,92,58,0.07);
+  --red:      #c0392b;
+  --red-bg:   rgba(192,57,43,0.07);
+  --amber:    #b45309;
+  --amber-bg: rgba(180,83,9,0.07);
+  --blue:     #1a4fa0;
+  --blue-bg:  rgba(26,79,160,0.07);
+  --green:    #15673a;
+  --green-bg: rgba(21,103,58,0.07);
+  --purple:   #5b21b6;
+  --purple-bg:rgba(91,33,182,0.07);
+  --pink:     #9d174d;
+  --shadow:   0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; min-height:100vh; font-size:15px; }
+.wrap { max-width:1440px; margin:0 auto; padding:36px 32px; }
+
+/* HEADER */
+.hdr { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:36px; padding-bottom:28px; border-bottom:2px solid var(--border); }
+.os-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.2em; color:var(--accent); text-transform:uppercase; margin-bottom:8px; font-weight:500; }
+.hdr h1 { font-size:48px; font-weight:800; letter-spacing:-0.03em; line-height:1; color:var(--text); }
+.hdr h1 span { color:var(--accent); }
+.hdr-right { text-align:right; }
+.live-row { display:flex; align-items:center; gap:8px; justify-content:flex-end; margin-bottom:5px; }
+.live-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+.live-txt { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.14em; color:var(--accent); text-transform:uppercase; font-weight:500; }
+.ts { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-dim); }
+.sync-st { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); margin-top:4px; }
+.sync-bd { font-family:'DM Mono',monospace; font-size:11px; color:var(--accent); margin-top:3px; opacity:0; transition:opacity 0.5s; }
+
+/* ATTENTION */
+.attn { background:var(--red-bg); border:1px solid rgba(192,57,43,0.2); border-radius:10px; padding:16px 20px; margin-bottom:28px; display:flex; align-items:flex-start; gap:14px; }
+.attn.hidden { display:none; }
+.attn-title { font-size:14px; font-weight:700; color:var(--red); margin-bottom:5px; }
+.attn-items { font-family:'DM Mono',monospace; font-size:12px; color:rgba(192,57,43,0.8); line-height:1.7; }
+
+/* SECTION LABEL */
+.slabel { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.16em; color:var(--text-dim); text-transform:uppercase; margin-bottom:14px; display:flex; align-items:center; gap:12px; font-weight:500; }
+.slabel::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* LOADER */
+.loader-bar { height:3px; background:var(--border); border-radius:2px; overflow:hidden; margin-bottom:16px; }
+.loader-fill { height:100%; background:var(--accent); width:0%; transition:width 0.4s ease; border-radius:2px; }
+
+/* METRICS — KPI ROW */
+.kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
+.kpi { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px 24px; box-shadow:var(--shadow); }
+.kpi-label { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.08em; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px; }
+.kpi-num { font-size:42px; font-weight:800; line-height:1; margin-bottom:5px; letter-spacing:-0.02em; }
+.kpi-sub { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-mid); }
+
+/* STAGES ROW */
+.stages-row { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:28px; }
+.stage { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px 20px; box-shadow:var(--shadow); }
+.stage-name { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.07em; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px; }
+.stage-num { font-size:32px; font-weight:800; line-height:1; margin-bottom:4px; letter-spacing:-0.01em; }
+.stage-val { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-mid); }
+
+/* IO METRICS */
+.io-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:32px; }
+.io-card { background:var(--surface); border:1px dashed var(--border2); border-radius:10px; padding:18px 20px; opacity:0.7; }
+.io-label { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; }
+.io-num { font-size:28px; font-weight:800; color:var(--text-dim); line-height:1; margin-bottom:4px; }
+.io-note { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); font-style:italic; }
+
+/* TASK STATS */
+.tstats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:32px; }
+.tstat { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 18px; text-align:center; box-shadow:var(--shadow); }
+.tstat-num { font-size:32px; font-weight:800; line-height:1; margin-bottom:5px; }
+.tstat-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.08em; color:var(--text-dim); text-transform:uppercase; }
+.tstat.ip .tstat-num   { color:var(--amber); }
+.tstat.nr .tstat-num   { color:var(--red); }
+.tstat.wa .tstat-num   { color:var(--blue); }
+.tstat.co .tstat-num   { color:var(--green); }
+
+/* WORKSTREAMS */
+.ws-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.ws-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); transition:box-shadow 0.2s, border-color 0.2s; }
+.ws-card:hover { border-color:var(--border2); box-shadow:var(--shadow-md); }
+.ws-card.full { grid-column:1/-1; }
+
+.ws-hdr { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border); cursor:pointer; user-select:none; transition:background 0.15s; }
+.ws-hdr:hover { background:var(--surface2); }
+.ws-hdr-l { display:flex; align-items:center; gap:13px; }
+.ws-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.ws-title { font-size:17px; font-weight:700; letter-spacing:-0.01em; }
+.ws-layer { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.07em; margin-top:2px; }
+.ws-hdr-r { display:flex; align-items:center; gap:10px; }
+.ws-count { font-family:'DM Mono',monospace; font-size:13px; color:var(--text-mid); }
+.ws-chevron { font-size:14px; color:var(--text-dim); transition:transform 0.2s; }
+.ws-card.open .ws-chevron { transform:rotate(180deg); }
+.nr-badge { font-family:'DM Mono',monospace; font-size:10px; color:var(--red); background:var(--red-bg); padding:3px 9px; border-radius:4px; border:1px solid rgba(192,57,43,0.2); font-weight:500; }
+
+/* SUBCAT TABS */
+.sc-bar { display:none; padding:12px 16px; gap:7px; flex-wrap:wrap; border-bottom:1px solid var(--border); background:var(--surface2); }
+.ws-card.open .sc-bar { display:flex; }
+.sc-tab { font-family:'DM Mono',monospace; font-size:11px; padding:5px 13px; border-radius:6px; border:1px solid var(--border); color:var(--text-dim); cursor:pointer; transition:all 0.15s; text-transform:uppercase; letter-spacing:0.06em; background:var(--surface); }
+.sc-tab:hover { border-color:var(--border2); color:var(--text-mid); }
+.sc-tab.on { border-color:rgba(26,92,58,0.35); color:var(--accent); background:var(--accent-bg); font-weight:600; }
+
+/* ITEM LIST */
+.ws-body { display:none; padding:14px; flex-direction:column; gap:8px; }
+.ws-card.open .ws-body { display:flex; }
+
+.item { display:flex; align-items:center; gap:11px; padding:14px 16px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; transition:border-color 0.15s, background 0.15s; }
+.item:hover { border-color:var(--border2); background:#fff; }
+
+.badge { flex-shrink:0; padding:4px 10px; border-radius:5px; font-family:'DM Mono',monospace; font-size:10px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; white-space:nowrap; border:1px solid transparent; }
+.b-ns { background:rgba(150,150,160,0.1); color:var(--text-dim); border-color:rgba(150,150,160,0.2); }
+.b-ip { background:var(--amber-bg); color:var(--amber); border-color:rgba(180,83,9,0.2); }
+.b-nr { background:var(--red-bg); color:var(--red); border-color:rgba(192,57,43,0.2); }
+.b-wa { background:var(--blue-bg); color:var(--blue); border-color:rgba(26,79,160,0.2); }
+.b-co { background:var(--green-bg); color:var(--green); border-color:rgba(21,103,58,0.2); }
+
+.item-txt { flex:1; font-size:14px; color:var(--text); line-height:1.45; }
+.src-tag { font-family:'DM Mono',monospace; font-size:10px; padding:3px 8px; border:1px solid var(--border); border-radius:4px; white-space:nowrap; flex-shrink:0; }
+.src-rob   { border-color:rgba(26,92,58,0.3); color:var(--accent); }
+.src-agent { border-color:rgba(26,79,160,0.3); color:var(--blue); }
+.item-btns { display:flex; gap:5px; flex-shrink:0; }
+.ibtn { background:none; border:1px solid var(--border); border-radius:5px; color:var(--text-dim); font-family:'DM Mono',monospace; font-size:10px; padding:4px 9px; cursor:pointer; transition:all 0.15s; }
+.ibtn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+.ibtn.del:hover { border-color:var(--red); color:var(--red); background:var(--red-bg); }
+
+/* ADD ROW */
+.add-row { display:flex; gap:9px; padding:13px 14px; border-top:1px solid var(--border); background:var(--surface2); }
+.add-inp { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:7px; color:var(--text); font-family:'Syne',sans-serif; font-size:14px; padding:10px 14px; outline:none; transition:border-color 0.15s; }
+.add-inp::placeholder { color:var(--text-dim); }
+.add-inp:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-bg); }
+.add-sel { background:var(--surface); border:1px solid var(--border); border-radius:7px; color:var(--text-mid); font-family:'DM Mono',monospace; font-size:12px; padding:10px 12px; outline:none; cursor:pointer; }
+.add-btn { background:var(--accent); border:none; border-radius:7px; color:#fff; font-family:'DM Mono',monospace; font-size:11px; padding:10px 18px; cursor:pointer; transition:background 0.15s; white-space:nowrap; font-weight:500; }
+.add-btn:hover { background:#15492e; }
+
+/* MODAL */
+.m-bg { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:100; display:none; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.m-bg.on { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border2); border-radius:16px; padding:28px; width:340px; box-shadow:var(--shadow-md); animation:fadeUp 0.2s ease; }
+.modal h3 { font-size:16px; font-weight:700; margin-bottom:16px; }
+.m-itm { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-mid); margin-bottom:18px; padding:10px 14px; background:var(--surface2); border-radius:7px; border:1px solid var(--border); line-height:1.55; }
+.m-opts { display:flex; flex-direction:column; gap:9px; margin-bottom:16px; }
+.m-opt { padding:12px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; transition:filter 0.15s; border:1px solid transparent; }
+.m-opt:hover { filter:brightness(0.95); }
+.mo-ns { background:rgba(150,150,160,0.1); color:var(--text-mid); border-color:rgba(150,150,160,0.2); }
+.mo-ip { background:var(--amber-bg); color:var(--amber); border-color:rgba(180,83,9,0.2); }
+.mo-nr { background:var(--red-bg); color:var(--red); border-color:rgba(192,57,43,0.2); }
+.mo-wa { background:var(--blue-bg); color:var(--blue); border-color:rgba(26,79,160,0.2); }
+.mo-co { background:var(--green-bg); color:var(--green); border-color:rgba(21,103,58,0.2); }
+.m-cancel { width:100%; background:none; border:1px solid var(--border); border-radius:8px; color:var(--text-mid); font-family:'Syne',sans-serif; font-size:14px; padding:11px; cursor:pointer; transition:all 0.15s; margin-top:4px; }
+.m-cancel:hover { border-color:var(--border2); color:var(--text); }
+
+/* FOOTER */
+.footer { margin-top:36px; padding-top:20px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.foot-l { font-family:'DM Mono',monospace; font-size:12px; color:var(--text-dim); letter-spacing:0.1em; }
+.foot-r { display:flex; gap:9px; }
+.fbtn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-dim); font-family:'DM Mono',monospace; font-size:10px; padding:7px 14px; cursor:pointer; letter-spacing:0.07em; text-transform:uppercase; transition:all 0.15s; }
+.fbtn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.45;transform:scale(0.75)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+@media(max-width:900px) {
+  .ws-grid,.kpi-row,.stages-row,.io-row,.tstats { grid-template-columns:1fr; }
+  .ws-card.full { grid-column:1; }
+  .hdr { flex-direction:column; gap:16px; }
+  .hdr-right { text-align:left; }
+  .live-row { justify-content:flex-start; }
+  .hdr h1 { font-size:36px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <div class="os-label">Rob OS · Command Center</div>
+    <h1>The <span>Machine</span></h1>
+  </div>
+  <div class="hdr-right">
+    <div class="live-row"><div class="live-dot"></div><span class="live-txt">Live</span></div>
+    <div class="ts" id="ts">–</div>
+    <div class="sync-st" id="syncSt">○ Connecting to Sheet…</div>
+    <div class="sync-bd" id="syncBd"></div>
+  </div>
+</div>
+
+<!-- ATTENTION -->
+<div class="attn hidden" id="attn">
+  <div style="font-size:20px;flex-shrink:0">⚡</div>
+  <div>
+    <div class="attn-title">Needs Rob — items requiring your input</div>
+    <div class="attn-items" id="attnItems"></div>
+  </div>
+</div>
+
+<!-- NIIO METRICS -->
+<div style="margin-bottom:32px">
+  <div class="slabel">NIIO Sales Pipeline · Live from HubSpot</div>
+  <div class="loader-bar"><div class="loader-fill" id="ldr"></div></div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Active Deals</div><div class="kpi-num" id="mAct" style="color:var(--accent)">–</div><div class="kpi-sub">Sales Pipeline only</div></div>
+    <div class="kpi"><div class="kpi-label">New Qualified · This Month</div><div class="kpi-num" id="mNQ" style="color:var(--amber)">–</div><div class="kpi-sub" id="mNQs">–</div></div>
+    <div class="kpi"><div class="kpi-label">Closed This Month</div><div class="kpi-num" id="mCM" style="color:var(--green)">–</div><div class="kpi-sub" id="mCMv">–</div></div>
+    <div class="kpi"><div class="kpi-label">Closed YTD</div><div class="kpi-num" id="mCY" style="color:var(--blue)">–</div><div class="kpi-sub" id="mCYv">–</div></div>
+  </div>
+  <div class="stages-row">
+    <div class="stage"><div class="stage-name">Prospect</div><div class="stage-num" id="sp" style="color:var(--text-mid)">–</div><div class="stage-val" id="spv">–</div></div>
+    <div class="stage"><div class="stage-name">Qualified Deal</div><div class="stage-num" id="sq" style="color:var(--amber)">–</div><div class="stage-val" id="sqv">–</div></div>
+    <div class="stage"><div class="stage-name">Proposal Sent</div><div class="stage-num" id="spr" style="color:var(--purple)">–</div><div class="stage-val" id="sprv">–</div></div>
+    <div class="stage"><div class="stage-name">Closed Won</div><div class="stage-num" id="sw" style="color:var(--green)">–</div><div class="stage-val" id="swv">–</div></div>
+    <div class="stage"><div class="stage-name">Installed</div><div class="stage-num" id="si" style="color:var(--accent)">–</div><div class="stage-val" id="siv">–</div></div>
+  </div>
+</div>
+
+<!-- IO METRICS -->
+<div style="margin-bottom:32px">
+  <div class="slabel">Infinite Objects · Connect IO Google Sheet</div>
+  <div class="io-row">
+    <div class="io-card"><div class="io-label">Monthly Sales</div><div class="io-num">–</div><div class="io-note">Awaiting IO sheet connection</div></div>
+    <div class="io-card"><div class="io-label">Active Deals</div><div class="io-num">–</div><div class="io-note">Awaiting IO sheet connection</div></div>
+    <div class="io-card"><div class="io-label">Partners</div><div class="io-num">–</div><div class="io-note">Awaiting IO sheet connection</div></div>
+  </div>
+</div>
+
+<!-- TASK STATS -->
+<div class="tstats">
+  <div class="tstat"><div class="tstat-num" id="stT">0</div><div class="tstat-label">Total Tasks</div></div>
+  <div class="tstat ip"><div class="tstat-num" id="stI">0</div><div class="tstat-label">In Progress</div></div>
+  <div class="tstat nr"><div class="tstat-num" id="stN">0</div><div class="tstat-label">Needs Rob</div></div>
+  <div class="tstat wa"><div class="tstat-num" id="stW">0</div><div class="tstat-label">Waiting External</div></div>
+  <div class="tstat co"><div class="tstat-num" id="stC">0</div><div class="tstat-label">Complete</div></div>
+</div>
+
+<!-- WORKSTREAMS -->
+<div class="slabel">Workstreams</div>
+<div class="ws-grid" id="wsGrid"></div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="foot-l">ROB OS v2.1 · <span id="activeCnt">0</span> ACTIVE ITEMS</div>
+  <div class="foot-r">
+    <button class="fbtn" onclick="clearDone()">Clear Completed</button>
+    <button class="fbtn" onclick="doRefreshMetrics()">Refresh Metrics</button>
+    <button class="fbtn" onclick="doExport()">Export</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="m-bg" id="mBg">
+  <div class="modal">
+    <h3>Update Status</h3>
+    <div class="m-itm" id="mTxt">–</div>
+    <div class="m-opts">
+      <div class="m-opt mo-ns" onclick="setStatus('not-started')">Not Started</div>
+      <div class="m-opt mo-ip" onclick="setStatus('in-progress')">In Progress</div>
+      <div class="m-opt mo-nr" onclick="setStatus('needs-rob')">⚡ Needs Rob</div>
+      <div class="m-opt mo-wa" onclick="setStatus('waiting')">Waiting on External</div>
+      <div class="m-opt mo-co" onclick="setStatus('complete')">✓ Complete</div>
+    </div>
+    <button class="m-cancel" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz5lnMew8Fq2Nl6mPuxPyE8WL9mNlE7j5TsFJfQTTzLrJxtraaiZX5DA7xJAvuxBkjo/exec';
+const STORAGE_KEY = 'robos-v3';
+
+// ── VENTURES ──────────────────────────────────────────────────
+const DEFS = [
+  { id:'niio',     title:'NIIO',             color:'#7c3aed', layer:'Multi-workstream',  subcats:['Corp','Biz Infrastructure','Content','Pipeline','Team','Partnerships'] },
+  { id:'io',       title:'Infinite Objects', color:'#1a6eb5', layer:'Multi-workstream',  subcats:['Corp','Pipeline','Content','Product'] },
+  { id:'oii',      title:'Only in Israel',   color:'#b45309', layer:'Venture',           subcats:[] },
+  { id:'personal', title:'Personal / Admin', color:'#9d174d', layer:'Rob Only',          subcats:[] },
+];
+
+// ── HUBSPOT (from live pull this session) ─────────────────────
+const HS = {
+  stages:{ prospect:{c:42,v:0}, qualified:{c:9,v:349704}, proposal:{c:8,v:427807}, won:{c:1,v:4704}, installed:{c:0,v:0} },
+  closedM:{ c:1, v:4704 }, closedY:{ c:9, v:312500 }, newQ:2
+};
+
+// ── STATE ─────────────────────────────────────────────────────
+let S = { ventures:[], nextId:400, cats:{} };
+let activeRef = null;
+
+// ── METRICS ───────────────────────────────────────────────────
+const fmtMoney = n => !n ? '–' : n>=1e6 ? '$'+(n/1e6).toFixed(1)+'M' : n>=1000 ? '$'+(n/1000).toFixed(0)+'K' : '$'+n;
+
+function loadMetrics(){
+  const L = document.getElementById('ldr');
+  L.style.width = '100%';
+  const s = HS.stages;
+  const tot = Object.values(s).reduce((a,x)=>a+x.c,0);
+  set('mAct', tot);
+  set('mNQ',  HS.newQ);
+  set('mNQs', 'April 2026');
+  set('mCM',  HS.closedM.c);
+  set('mCMv', fmtMoney(HS.closedM.v));
+  set('mCY',  HS.closedY.c);
+  set('mCYv', fmtMoney(HS.closedY.v));
+  [['sp','spv',s.prospect],['sq','sqv',s.qualified],['spr','sprv',s.proposal],['sw','swv',s.won],['si','siv',s.installed]].forEach(([c,v,d])=>{
+    set(c, d.c); set(v, d.v>0?fmtMoney(d.v):'–');
+  });
+  setTimeout(()=>{ L.style.width='0%'; }, 700);
+}
+const set = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+
+function doRefreshMetrics(){ badge('Metrics refreshed'); loadMetrics(); }
+
+// ── SHEET SYNC ────────────────────────────────────────────────
+// Workstream name → venture id mapping
+const WS_MAP = {
+  niio:'niio', niiocorp:'niio', niioinfra:'niio', niiobizinfra:'niio',
+  niiobizinfrastructure:'niio', niiocontent:'niio', niioteam:'niio',
+  niiopartnerships:'niio', niiobiz:'niio', niioPipeline:'niio',
+  io:'io', infiniteobjects:'io', iocorp:'io', iopipeline:'io',
+  iocontent:'io', ioproduct:'io',
+  oii:'oii', onlyinisrael:'oii',
+  personal:'personal', personaladmin:'personal', admin:'personal'
+};
+
+// Subcat inference from workstream string
+const SC_MAP = {
+  niiocorp:'Corp', niioinfra:'Biz Infrastructure', niiobizinfra:'Biz Infrastructure',
+  niiobizinfrastructure:'Biz Infrastructure', niiocontent:'Content',
+  niioteam:'Team', niiopartnerships:'Partnerships', niiobiz:'Biz Infrastructure',
+  iocorp:'Corp', iopipeline:'Pipeline', iocontent:'Content', ioproduct:'Product'
+};
+
+async function syncSheet(){
+  try {
+    // Fetch the Inbox tab
+    const res = await fetch(SHEET_URL + '?tab=Inbox', { cache:'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    // Parse JSON safely
+    const rows = JSON.parse(text);
+    if (!Array.isArray(rows)) throw new Error('Not array');
+
+    let added = 0;
+    rows.forEach(row => {
+      // Normalize keys (trim spaces)
+      const get = (k) => {
+        const keys = Object.keys(row);
+        const found = keys.find(x => x.trim().toLowerCase() === k.toLowerCase());
+        return found ? String(row[found]||'').trim() : '';
+      };
+
+      const taskId = get('task_id');
+      const text   = get('text');
+      if (!text) return;
+
+      const wsRaw  = get('workstream').toLowerCase().replace(/[\s\-_]/g,'');
+      const status = get('status') || 'not-started';
+      const source = get('source') || 'agent';
+      const notes  = get('notes');
+      const catRaw = get('subcat') || get('category') || '';
+
+      const vid = WS_MAP[wsRaw] || 'niio';
+      const v   = S.ventures.find(x=>x.id===vid);
+      if (!v) return;
+
+      // Deduplicate
+      if (v.items.some(i=>(taskId && i.sheetId===taskId)||(i.text===text))) return;
+
+      // Determine sub-category
+      let subcat = SC_MAP[wsRaw] || catRaw || (v.subcats.length>0 ? v.subcats[0] : null);
+
+      v.items.push({ id:S.nextId++, sheetId:taskId||null, text: notes ? text+' — '+notes : text, status, source, subcat, fromSheet:true });
+      added++;
+    });
+
+    if (added > 0){ saveLocal(); render(); badge(added+' task'+(added>1?'s':'')+' synced'); }
+    syncStatus(true);
+  } catch(e){
+    console.warn('Sheet sync failed:', e.message);
+    syncStatus(false);
+  }
+}
+
+function syncStatus(ok){
+  const el = document.getElementById('syncSt');
+  el.textContent = ok ? '● Sheet connected' : '○ Sheet offline';
+  el.style.color  = ok ? 'var(--accent)' : 'var(--text-dim)';
+}
+function badge(msg){ const el=document.getElementById('syncBd'); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',4000); }
+
+// ── INIT ──────────────────────────────────────────────────────
+function init(){
+  // Try loading from any previous version's localStorage
+  const raw = localStorage.getItem(STORAGE_KEY)
+           || localStorage.getItem('robos-v2')
+           || localStorage.getItem('robos-command-center');
+
+  if (raw) {
+    try {
+      const old = JSON.parse(raw);
+      // Always start with fresh structure, then layer in saved items
+      buildFresh();
+      // Pull in any saved items from old format
+      if (old.ventures) {
+        old.ventures.forEach(ov => {
+          const v = S.ventures.find(x=>x.id===ov.id);
+          if (v && ov.items && ov.items.length > 0) v.items = ov.items;
+          if (v && ov.expanded !== undefined) v.expanded = ov.expanded;
+        });
+        if (old.nextId) S.nextId = Math.max(S.nextId, old.nextId);
+        if (old.cats) S.cats = { ...old.cats };
+      } else if (old.workstreams) {
+        old.workstreams.forEach(ow => {
+          const v = S.ventures.find(x=>x.id===ow.id);
+          if (v && ow.items && ow.items.length > 0) v.items = ow.items;
+        });
+        if (old.nextId) S.nextId = Math.max(S.nextId, old.nextId);
+      }
+    } catch(e){ buildFresh(); }
+  } else { buildFresh(); }
+
+  // Defaults — always safe-init cats and expanded
+  if (!S.cats) S.cats = {};
+  S.ventures.forEach(v=>{ if(v.expanded===undefined) v.expanded=true; });
+  DEFS.forEach(def=>{ if(!S.cats[def.id] && def.subcats.length>0) S.cats[def.id]=def.subcats[0]; });
+
+  saveLocal();
+  updateTs();
+  loadMetrics();
+  render();
+  syncSheet();
+  setInterval(syncSheet, 60000);
+}
+
+function buildFresh(){
+  S.ventures = DEFS.map(def => ({
+    ...def, expanded:true,
+    items: def.id==='personal'
+      ? [{ id:15, text:'Send letter to Shelly', status:'not-started', source:'rob', subcat:null }]
+      : []
+  }));
+  S.nextId = 400;
+}
+
+function saveLocal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }
+function updateTs(){ set('ts','Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})); }
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(){ renderWS(); updateStats(); }
+
+function renderWS(){
+  const grid = document.getElementById('wsGrid');
+  grid.innerHTML = '';
+  S.ventures.forEach((v,i) => {
+    const isFull = v.id==='oii'||v.id==='personal';
+    const card = document.createElement('div');
+    card.className = 'ws-card'+(v.expanded?' open':'')+(isFull?' full':'');
+
+    const cat   = (S.cats && S.cats[v.id]) ? S.cats[v.id] : (v.subcats.length>0 ? v.subcats[0] : null);
+    const vis   = cat ? v.items.filter(x=>!x.subcat||x.subcat===cat) : v.items;
+    const actC  = v.items.filter(x=>x.status!=='complete').length;
+    const nrC   = v.items.filter(x=>x.status==='needs-rob').length;
+
+    card.innerHTML = `
+      <div class="ws-hdr" onclick="toggleV('${v.id}')">
+        <div class="ws-hdr-l">
+          <div class="ws-dot" style="background:${v.color}"></div>
+          <div>
+            <div class="ws-title">${v.title}</div>
+            <div class="ws-layer">${cat||v.layer}</div>
+          </div>
+        </div>
+        <div class="ws-hdr-r">
+          ${nrC>0?`<span class="nr-badge">⚡ ${nrC}</span>`:''}
+          <span class="ws-count">${actC} active</span>
+          <span class="ws-chevron">▾</span>
+        </div>
+      </div>
+      ${v.subcats.length?`<div class="sc-bar">${v.subcats.map(sc=>`<div class="sc-tab${cat===sc?' on':''}" onclick="setSC('${v.id}','${sc}',event)">${sc}</div>`).join('')}</div>`:''}
+      <div class="ws-body">
+        ${vis.map(renderItem).join('')}
+        <div class="add-row">
+          <input class="add-inp" id="inp-${v.id}" placeholder="Add task…" onkeydown="if(event.key==='Enter')addItem('${v.id}')">
+          <select class="add-sel" id="sel-${v.id}"><option value="rob">Rob</option><option value="agent">Agent</option></select>
+          <button class="add-btn" onclick="addItem('${v.id}')">+ Add</button>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function renderItem(item){
+  const lbl={'not-started':'Not Started','in-progress':'In Progress','needs-rob':'⚡ Needs Rob','waiting':'Waiting','complete':'✓ Done'};
+  const cls={'not-started':'b-ns','in-progress':'b-ip','needs-rob':'b-nr','waiting':'b-wa','complete':'b-co'};
+  return `<div class="item">
+    <span class="badge ${cls[item.status]||'b-ns'}">${lbl[item.status]||item.status}</span>
+    <span class="item-txt">${esc(item.text)}</span>
+    <span class="src-tag ${item.source==='rob'?'src-rob':'src-agent'}">${item.source==='rob'?'Rob':'Agent'}</span>
+    <div class="item-btns">
+      <button class="ibtn" onclick="openModal(${item.id})">Status</button>
+      <button class="ibtn del" onclick="delItem(${item.id})">✕</button>
+    </div>
+  </div>`;
+}
+
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function updateStats(){
+  let tot=0,ip=0,nr=0,wa=0,co=0,nrList=[];
+  S.ventures.forEach(v=>v.items.forEach(i=>{
+    tot++; if(i.status==='in-progress')ip++; if(i.status==='needs-rob'){nr++;nrList.push(v.title+': '+i.text);}
+    if(i.status==='waiting')wa++; if(i.status==='complete')co++;
+  }));
+  set('stT',tot); set('stI',ip); set('stN',nr); set('stW',wa); set('stC',co);
+  set('activeCnt',tot-co);
+  const attn=document.getElementById('attn');
+  if(!nr){ attn.classList.add('hidden'); return; }
+  attn.classList.remove('hidden');
+  document.getElementById('attnItems').textContent = nrList.slice(0,5).join('\n')+(nrList.length>5?'\n+'+(nrList.length-5)+' more':'');
+}
+
+// ── INTERACTIONS ──────────────────────────────────────────────
+function toggleV(vid){ const v=S.ventures.find(x=>x.id===vid); if(v){v.expanded=!v.expanded;saveLocal();render();} }
+function setSC(vid,sc,e){ e.stopPropagation(); S.cats[vid]=sc; saveLocal(); render(); }
+
+function addItem(vid){
+  const inp=document.getElementById('inp-'+vid);
+  const sel=document.getElementById('sel-'+vid);
+  const txt=inp.value.trim(); if(!txt) return;
+  const v=S.ventures.find(x=>x.id===vid); if(!v) return;
+  v.items.push({id:S.nextId++,text:txt,status:'not-started',source:sel.value,subcat:S.cats[vid]||null});
+  v.expanded=true; saveLocal(); updateTs(); render();
+  setTimeout(()=>{ const el=document.getElementById('inp-'+vid); if(el)el.focus(); },50);
+}
+
+function delItem(id){
+  S.ventures.forEach(v=>{ const i=v.items.findIndex(x=>x.id===id); if(i>-1) v.items.splice(i,1); });
+  saveLocal(); updateTs(); render();
+}
+
+function openModal(id){
+  for(const v of S.ventures){
+    const item=v.items.find(x=>x.id===id);
+    if(item){ activeRef={vid:v.id,id}; document.getElementById('mTxt').textContent=item.text; document.getElementById('mBg').classList.add('on'); return; }
+  }
+}
+function closeModal(){ document.getElementById('mBg').classList.remove('on'); activeRef=null; }
+function setStatus(s){
+  if(!activeRef) return;
+  const v=S.ventures.find(x=>x.id===activeRef.vid);
+  if(v){ const item=v.items.find(x=>x.id===activeRef.id); if(item){item.status=s;saveLocal();updateTs();render();} }
+  closeModal();
+}
+
+function clearDone(){ S.ventures.forEach(v=>v.items=v.items.filter(i=>i.status!=='complete')); saveLocal();updateTs();render(); }
+function doExport(){ const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u;a.download='robos-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u); }
+
+document.getElementById('mBg').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+init();
+</script>
+</body>
+</html>
